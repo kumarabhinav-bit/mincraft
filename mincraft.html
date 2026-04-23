@@ -1,0 +1,1475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Block Craft Ultra — v3</title>
+<style>
+@font-face{font-family:'Pixel';src:url('https://fonts.cdnfonts.com/s/19366/MinecraftRegular-Bmg3.woff') format('woff')}
+*{box-sizing:border-box;margin:0;padding:0}
+body{overflow:hidden;font-family:'Pixel','Courier New',monospace;user-select:none;background:#000}
+
+/* ─── HUD CONTAINER ─── */
+#ui{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:10}
+
+/* ─── TOP-LEFT INFO ─── */
+#hud-left{
+  position:absolute;top:12px;left:12px;color:#fff;
+  background:rgba(0,0,0,.55);padding:10px 14px;
+  border:2px solid #444;line-height:2;font-size:12px;
+  text-shadow:1px 1px 0 #000;
+}
+#hud-left .val{color:#ffff55}
+
+/* ─── TOP-RIGHT STATS ─── */
+#hud-right{
+  position:absolute;top:12px;right:12px;
+  display:flex;flex-direction:column;gap:6px;
+  text-align:right;color:#fff;text-shadow:1px 1px 0 #000;
+}
+#score-el{font-size:22px;color:#f1c40f}
+#level-el{font-size:13px;color:#55ffff}
+.bar-lbl{font-size:11px;color:#aaa}
+.bar-wrap{width:200px;height:14px;background:#111;border:2px solid #666;overflow:hidden}
+#hp-fill  {height:100%;background:linear-gradient(90deg,#c0392b,#e74c3c);transition:.15s}
+#hun-fill {height:100%;background:linear-gradient(90deg,#d35400,#e67e22);transition:.15s}
+#xp-fill  {height:100%;width:0;background:linear-gradient(90deg,#27ae60,#2ecc71);transition:.35s}
+
+/* ─── MINIMAP ─── */
+#minimap-wrap{position:absolute;bottom:82px;right:12px}
+#minimap-lbl{color:#fff;font-size:9px;text-shadow:1px 1px 0 #000;text-align:center;margin-bottom:2px}
+#minimap{width:130px;height:130px;border:2px solid #fff;display:block;image-rendering:pixelated}
+
+/* ─── CROSSHAIR ─── */
+#xhair{
+  position:absolute;top:50%;left:50%;
+  width:24px;height:24px;transform:translate(-50%,-50%);
+}
+#xhair::before,#xhair::after{content:'';position:absolute;background:rgba(255,255,255,.9)}
+#xhair::before{top:11px;left:0;width:24px;height:2px}
+#xhair::after{top:0;left:11px;width:2px;height:24px}
+
+/* ─── NOTIFICATIONS ─── */
+#notifs{
+  position:absolute;top:15%;left:50%;transform:translateX(-50%);
+  display:flex;flex-direction:column;gap:4px;align-items:center;
+}
+.notif{
+  background:rgba(0,0,0,.7);color:#fff;padding:5px 14px;
+  font-size:15px;text-shadow:1px 1px 0 #000;white-space:nowrap;
+  animation:floatUp 2.8s forwards;border-left:3px solid #fff;
+}
+@keyframes floatUp{0%{opacity:1;transform:translateY(0)}75%{opacity:1}100%{opacity:0;transform:translateY(-32px)}}
+
+/* ─── KILL FEED ─── */
+#killfeed{position:absolute;top:40%;right:14px;display:flex;flex-direction:column;gap:3px}
+.kf{background:rgba(200,0,0,.45);color:#fff;font-size:11px;padding:3px 8px;
+  text-shadow:1px 1px 0 #000;animation:floatUp 3s forwards}
+
+/* ─── DAMAGE FLASH ─── */
+#dmg-flash{
+  position:absolute;top:0;left:0;width:100%;height:100%;
+  pointer-events:none;background:transparent;
+  transition:background .15s;z-index:9;
+}
+
+/* ─── TOOLBAR ─── */
+#toolbar{
+  position:absolute;bottom:12px;left:50%;transform:translateX(-50%);
+  display:flex;gap:4px;pointer-events:auto;
+}
+.slot{
+  width:54px;height:54px;border:3px solid #555;
+  background:rgba(0,0,0,.5);color:#fff;
+  display:flex;flex-direction:column;justify-content:center;align-items:center;
+  font-size:9px;cursor:pointer;
+  transition:transform .12s,border-color .12s,background .12s;
+  text-shadow:1px 1px 0 #000;
+}
+.slot span{font-size:19px;line-height:1.2}
+.slot.active{border-color:#fff;transform:scale(1.14);background:rgba(255,255,255,.18)}
+.slot:hover:not(.active){border-color:#aaa;background:rgba(255,255,255,.08)}
+
+/* ─── BLOCK PLACE PREVIEW ─── */
+#block-preview{
+  position:absolute;bottom:80px;left:50%;transform:translateX(-50%);
+  background:rgba(0,0,0,.65);color:#ffff55;font-size:12px;
+  padding:3px 10px;text-shadow:1px 1px 0 #000;
+}
+
+/* ─── START SCREEN ─── */
+#start-screen{
+  position:absolute;top:0;left:0;width:100%;height:100%;z-index:99;
+  background:linear-gradient(180deg,#0a0a1a 0%,#0d1b2a 60%,#0f3460 100%);
+  display:flex;align-items:center;justify-content:center;
+  pointer-events:auto;
+}
+#start-box{
+  background:rgba(0,0,0,.82);border:4px solid #fff;
+  padding:36px 50px;text-align:center;color:#fff;
+  box-shadow:0 0 60px rgba(255,235,59,.15);max-width:600px;width:90%;
+}
+#start-box h1{
+  font-size:48px;color:#fff;text-shadow:4px 4px 0 #000,0 0 30px #ffeb3b;
+  letter-spacing:5px;margin-bottom:4px;
+}
+#start-box .tagline{color:#7fff7f;font-size:12px;margin-bottom:20px}
+
+/* Controls table */
+.ctrl-table{
+  width:100%;border-collapse:collapse;font-size:11px;
+  margin-bottom:20px;text-align:left;
+}
+.ctrl-table th{color:#ffff55;padding:4px 8px;border-bottom:1px solid #333}
+.ctrl-table td{color:#ddd;padding:3px 8px}
+.ctrl-table tr:nth-child(even) td{background:rgba(255,255,255,.04)}
+.key{
+  display:inline-block;background:#444;border:1px solid #888;
+  padding:1px 5px;border-radius:3px;color:#fff;font-size:10px;
+}
+
+#play-btn{
+  padding:14px 50px;font-size:22px;cursor:pointer;
+  background:#3a6b3a;border:3px solid #000;color:#fff;
+  font-family:'Pixel',monospace;text-shadow:2px 2px 0 #000;
+  box-shadow:inset 3px 3px 0 rgba(255,255,255,.2),inset -3px -3px 0 rgba(0,0,0,.4);
+  transition:background .1s;margin-bottom:10px;
+}
+#play-btn:hover{background:#4e8f4e}
+.note{font-size:10px;color:#666;margin-top:8px}
+
+/* ─── INVENTORY ─── */
+#inventory{
+  display:none;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  background:rgba(10,10,10,.96);border:4px solid #888;padding:22px;
+  color:#fff;z-index:50;pointer-events:auto;min-width:340px;
+  box-shadow:0 0 40px rgba(0,0,0,.8);
+}
+#inventory h2{color:#ffff55;font-size:18px;margin-bottom:14px;text-shadow:2px 2px 0 #000}
+.inv-grid{display:grid;grid-template-columns:repeat(6,52px);gap:5px;margin-bottom:14px}
+.inv-slot{
+  width:52px;height:52px;border:2px solid #444;background:rgba(255,255,255,.04);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  font-size:9px;cursor:pointer;transition:border-color .1s,background .1s;
+}
+.inv-slot:hover{border-color:#fff;background:rgba(255,255,255,.12)}
+.inv-slot span{font-size:20px}
+.inv-slot .inv-count{color:#ffff55;font-size:10px}
+.inv-btn{
+  padding:8px 20px;font-size:12px;cursor:pointer;background:#555;
+  border:2px solid #000;color:#fff;font-family:'Pixel',monospace;
+  text-shadow:1px 1px 0 #000;
+}
+.inv-btn:hover{background:#777}
+
+/* ─── BUILD MENU ─── */
+#build-menu{
+  display:none;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  background:rgba(10,10,10,.96);border:4px solid #d4a017;padding:22px;
+  color:#fff;z-index:50;pointer-events:auto;min-width:380px;
+}
+#build-menu h2{color:#d4a017;font-size:18px;margin-bottom:14px}
+.recipe-grid{display:flex;flex-direction:column;gap:8px}
+.recipe{
+  display:flex;align-items:center;gap:10px;padding:8px;
+  background:rgba(255,255,255,.05);border:1px solid #444;cursor:pointer;
+  transition:background .1s,border-color .1s;
+}
+.recipe:hover{background:rgba(255,215,0,.1);border-color:#d4a017}
+.recipe-icon{font-size:24px;width:36px;text-align:center}
+.recipe-info{flex:1}
+.recipe-name{color:#ffff55;font-size:12px}
+.recipe-cost{color:#aaa;font-size:10px}
+
+/* ─── PAUSE ─── */
+#pause-screen{
+  display:none;position:absolute;top:0;left:0;width:100%;height:100%;
+  background:rgba(0,0,0,.6);z-index:98;pointer-events:auto;
+  align-items:center;justify-content:center;
+}
+#pause-box{
+  background:rgba(0,0,0,.9);border:4px solid #fff;
+  padding:40px 60px;text-align:center;color:#fff;
+}
+#pause-box h2{font-size:32px;margin-bottom:20px;color:#ffff55}
+</style>
+</head>
+<body>
+
+<!-- ═══ START SCREEN ═══ -->
+<div id="start-screen">
+  <div id="start-box">
+    <h1>⛏ BLOCK CRAFT</h1>
+    <div class="tagline">ULTRA EDITION v3 — 200×200 World</div>
+
+    <table class="ctrl-table">
+      <tr><th>Action</th><th>Key / Button</th><th>Action</th><th>Key / Button</th></tr>
+      <tr><td>Move Forward</td><td><span class="key">W</span></td>
+          <td>Move Backward</td><td><span class="key">S</span></td></tr>
+      <tr><td>Move Left</td><td><span class="key">A</span></td>
+          <td>Move Right</td><td><span class="key">D</span></td></tr>
+      <tr><td>Jump</td><td><span class="key">Space</span></td>
+          <td>Sprint</td><td><span class="key">Shift</span></td></tr>
+      <tr><td>Mine Block</td><td><span class="key">Left Click</span></td>
+          <td>Place Block</td><td><span class="key">Right Click</span></td></tr>
+      <tr><td>Attack Mob</td><td><span class="key">Left Click</span></td>
+          <td>Shoot Arrow</td><td><span class="key">F</span></td></tr>
+      <tr><td>Hotbar 1-9</td><td><span class="key">1</span>–<span class="key">9</span></td>
+          <td>Open Inventory</td><td><span class="key">E</span></td></tr>
+      <tr><td>Build Menu</td><td><span class="key">B</span></td>
+          <td>Pause</td><td><span class="key">Esc</span></td></tr>
+      <tr><td>Toggle HUD</td><td><span class="key">H</span></td>
+          <td>Scroll Hotbar</td><td><span class="key">Wheel</span></td></tr>
+    </table>
+
+    <div style="color:#aaa;font-size:11px;margin-bottom:18px;line-height:1.9">
+      🐄 Cows &nbsp;|&nbsp; 🐷 Pigs &nbsp;|&nbsp; 🐔 Chickens &nbsp;|&nbsp; 🐑 Sheep<br>
+      🧟 Zombies at Night &nbsp;|&nbsp; 💥 Creepers (explode!)<br>
+      🏠 Build Structures with <span class="key">B</span> &nbsp;|&nbsp; 🗺 Minimap &nbsp;|&nbsp; ⭐ XP &amp; Levels<br>
+      🌵 Desert &nbsp;|&nbsp; ❄ Snow &nbsp;|&nbsp; ⛰ Mountains &nbsp;|&nbsp; 🌊 Water
+    </div>
+
+    <button id="play-btn">▶ PLAY NOW</button>
+    <div class="note">Click the button, then click on the game to lock your mouse. Press Esc to pause.</div>
+  </div>
+</div>
+
+<!-- ═══ PAUSE SCREEN ═══ -->
+<div id="pause-screen">
+  <div id="pause-box">
+    <h2>⏸ PAUSED</h2>
+    <button class="inv-btn" id="resume-btn" style="font-size:16px;padding:12px 30px">▶ RESUME</button>
+  </div>
+</div>
+
+<!-- ═══ MAIN HUD ═══ -->
+<div id="ui">
+  <!-- Left info -->
+  <div id="hud-left">
+    Time: <span class="val" id="time-el">☀ Day</span><br>
+    Block: <span class="val" id="block-el">Grass</span><br>
+    Biome: <span class="val" id="biome-el">Plains</span><br>
+    XYZ: <span class="val" id="pos-el">0,0,0</span><br>
+    Arrows: <span class="val" id="arrow-el">5</span><br>
+    [<span class="key" style="font-size:10px">H</span> hide HUD]
+  </div>
+
+  <!-- Right stats -->
+  <div id="hud-right">
+    <div id="score-el">Score: 0</div>
+    <div id="level-el">Lv.1 — XP: 0/100</div>
+    <div class="bar-lbl">❤ Health</div>
+    <div class="bar-wrap"><div id="hp-fill"></div></div>
+    <div class="bar-lbl">🍗 Hunger</div>
+    <div class="bar-wrap"><div id="hun-fill"></div></div>
+    <div class="bar-lbl">⭐ XP</div>
+    <div class="bar-wrap"><div id="xp-fill"></div></div>
+  </div>
+
+  <!-- Minimap -->
+  <div id="minimap-wrap">
+    <div id="minimap-lbl">🗺 MAP</div>
+    <canvas id="minimap" width="130" height="130"></canvas>
+  </div>
+
+  <!-- Notifications -->
+  <div id="notifs"></div>
+
+  <!-- Crosshair -->
+  <div id="xhair"></div>
+
+  <!-- Kill feed -->
+  <div id="killfeed"></div>
+
+  <!-- Block preview label -->
+  <div id="block-preview">Grass</div>
+
+  <!-- Toolbar -->
+  <div id="toolbar">
+    <div class="slot active" id="s0"><span>🟩</span>Grass</div>
+    <div class="slot" id="s1"><span>🟫</span>Dirt</div>
+    <div class="slot" id="s2"><span>🪨</span>Stone</div>
+    <div class="slot" id="s3"><span>🪵</span>Wood</div>
+    <div class="slot" id="s4"><span>🚪</span>Door</div>
+    <div class="slot" id="s5"><span>🔥</span>Fire</div>
+    <div class="slot" id="s6"><span>🪜</span>Ladder</div>
+    <div class="slot" id="s7"><span>💧</span>Water</div>
+    <div class="slot" id="s8"><span>🏖️</span>Sand</div>
+  </div>
+</div>
+
+<!-- Damage overlay -->
+<div id="dmg-flash"></div>
+
+<!-- ═══ INVENTORY ═══ -->
+<div id="inventory">
+  <h2>📦 INVENTORY</h2>
+  <div class="inv-grid" id="inv-grid"></div>
+  <div style="display:flex;gap:8px">
+    <button class="inv-btn" onclick="closePanel('inventory')">Close (E)</button>
+    <button class="inv-btn" style="background:#3a6b3a" onclick="eatFood()">🍗 Eat Food</button>
+  </div>
+</div>
+
+<!-- ═══ BUILD MENU ═══ -->
+<div id="build-menu">
+  <h2>🏗 BUILD MENU</h2>
+  <div class="recipe-grid" id="recipe-grid"></div>
+  <br><button class="inv-btn" onclick="closePanel('build-menu')">Close (B)</button>
+</div>
+
+<script type="importmap">
+{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
+
+// ════════════════════════════════════════
+//  CONFIG
+// ════════════════════════════════════════
+const WORLD   = 200;   // 200×200 field
+const DAY_DUR = 600;
+const MAX_HP  = 100, MAX_HUN = 100, MAX_XP = 100;
+
+// ════════════════════════════════════════
+//  STATE
+// ════════════════════════════════════════
+let selBlock = 'grass', hotbarIdx = 0;
+let hp = MAX_HP, hun = MAX_HUN, xp = 0, level = 1, score = 0, arrowCount = 5;
+let gameTime = 0, nightSpawned = false, isDay = true;
+let isSwinging = false, panelOpen = false, hudVisible = true;
+
+const allBlocks = [], collidable = [], ladders = [], waterMeshes = [];
+const drops = [], coins = [], arrows3D = [], particles = [];
+const zombies = [], creepers = [], cows = [], pigs = [], chickens = [], sheeps = [];
+const clouds = [];
+const invItems = {}; // {type:count}
+
+const HOTBAR = ['grass','dirt','stone','wood','door','fire','ladder','water','sand'];
+const BLOCK_ICONS = {grass:'🟩',dirt:'🟫',stone:'🪨',wood:'🪵',leaves:'🍃',
+  sand:'🏖️',water:'💧',fire:'🔥',door:'🚪',ladder:'🪜',snow:'⬜',beef:'🥩',pork:'🥓',chicken:'🍗'};
+
+// ════════════════════════════════════════
+//  SCENE
+// ════════════════════════════════════════
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x87CEEB);
+scene.fog = new THREE.FogExp2(0x87CEEB, 0.008);
+
+const camera = new THREE.PerspectiveCamera(75, innerWidth/innerHeight, 0.1, 500);
+camera.position.set(0, 14, 0);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference:'high-performance' });
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+document.body.appendChild(renderer.domElement);
+
+// ════════════════════════════════════════
+//  TEXTURES — pixel art style
+// ════════════════════════════════════════
+const TEX_CACHE = {};
+function pixelTex(type) {
+  if (TEX_CACHE[type]) return TEX_CACHE[type];
+  const S = 64, PS = 4;
+  const cv = document.createElement('canvas'); cv.width=cv.height=S;
+  const c = cv.getContext('2d');
+
+  const pal = {
+    grass:  ['#5fb843','#56a73c','#4a9c2e','#6bc54e','#4d9030'],
+    dirt:   ['#8b5e3c','#754b2e','#684024','#966c4a'],
+    stone:  ['#7a7a7a','#707070','#848484','#6c6c6c'],
+    wood:   ['#6d5130','#5c4328','#7a5c38'],
+    sand:   ['#e2c97e','#d4b96b','#c9ae60','#dfc780'],
+    water:  ['#1a73e8','#1560c0','#1976d2','#0d6efd'],
+    snow:   ['#eeeeee','#ffffff','#e0e0e0','#f5f5f5'],
+    leaves: ['#4a6b1d','#395713','#587a27','#3e5e16'],
+    zombie: ['#539e34','#4a8c2a','#58a838'],
+    creeper:['#2d8c2d','#228b22','#1e7b1e'],
+    cow:    ['#333333','#ffffff','#222222'],
+    pig:    ['#f4a0a0','#e89090','#f0b0b0'],
+    chicken:['#ffffff','#f0f0f0','#eeeeee'],
+    sheep:  ['#f0f0f0','#e8e8e8','#d8d8d8'],
+  }[type] || ['#888'];
+
+  for (let x=0;x<S;x+=PS) for (let y=0;y<S;y+=PS) {
+    const r = Math.random();
+    let col = pal[Math.floor(r*pal.length)];
+    if (type==='wood'&&x%(PS*4)===0) col='#513a20';
+    if (type==='leaves'&&r>0.82){c.clearRect(x,y,PS,PS);continue;}
+    if (type==='water'&&r>0.88) col='#5ab4f5';
+    c.fillStyle=col; c.fillRect(x,y,PS,PS);
+  }
+
+  // Overlays
+  if (type==='door') {
+    c.fillStyle='#5c4033';c.fillRect(0,0,S,S);
+    c.fillStyle='#3e2b22';
+    c.fillRect(8,8,20,20);c.fillRect(36,8,20,20);
+    c.fillRect(8,36,20,20);c.fillRect(36,36,20,20);
+    c.fillStyle='#ffcc00';c.fillRect(52,32,4,4);
+  }
+  if (type==='ladder') {
+    c.clearRect(0,0,S,S);c.fillStyle='#5c4033';
+    c.fillRect(12,0,8,S);c.fillRect(44,0,8,S);
+    for(let i=8;i<S;i+=16)c.fillRect(12,i,40,6);
+  }
+  if (type==='fire') {
+    for(let i=0;i<14;i++){
+      c.fillStyle=`rgba(255,${Math.floor(Math.random()*140)},0,.85)`;
+      c.fillRect(Math.random()*44+8,Math.random()*44+8,10,10);
+    }
+  }
+  if (type==='zombie'||type==='creeper') {
+    c.fillStyle='#111';
+    c.fillRect(14,18,10,10);c.fillRect(40,18,10,10);
+    c.fillStyle=type==='zombie'?'#3a5c26':'#1a6a1a';
+    c.fillRect(18,42,28,8);
+  }
+
+  const tex = new THREE.CanvasTexture(cv);
+  tex.magFilter = tex.minFilter = THREE.NearestFilter;
+  tex.colorSpace = THREE.SRGBColorSpace;
+  TEX_CACHE[type] = tex;
+  return tex;
+}
+
+// ════════════════════════════════════════
+//  MATERIALS
+// ════════════════════════════════════════
+const MAT = {};
+['grass','dirt','stone','wood','sand','snow','leaves','door','fire','ladder','water',
+ 'zombie','creeper','cow','pig','chicken','sheep'].forEach(t=>{
+  MAT[t]=new THREE.MeshLambertMaterial({map:pixelTex(t),
+    transparent:['leaves','ladder','water'].includes(t),
+    alphaTest:t==='leaves'?0.5:0,
+    opacity:t==='water'?0.78:1,
+    side:['leaves','ladder'].includes(t)?THREE.DoubleSide:THREE.FrontSide});
+});
+MAT.zombieClothes = new THREE.MeshLambertMaterial({color:0x3b5998});
+MAT.cloud  = new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0.88});
+MAT.gold   = new THREE.MeshBasicMaterial({color:0xFFD700});
+MAT.arrow  = new THREE.MeshLambertMaterial({color:0x8B4513});
+
+const BOX = new THREE.BoxGeometry(1,1,1);
+
+// ════════════════════════════════════════
+//  LIGHTING
+// ════════════════════════════════════════
+const ambient = new THREE.AmbientLight(0xffffff, 0.92);
+scene.add(ambient);
+
+const sunLight = new THREE.DirectionalLight(0xfffacd, 1.1);
+sunLight.castShadow = true;
+sunLight.shadow.mapSize.set(1024,1024);
+sunLight.shadow.camera.near = 0.1;
+sunLight.shadow.camera.far = 300;
+sunLight.shadow.camera.left = sunLight.shadow.camera.bottom = -80;
+sunLight.shadow.camera.right = sunLight.shadow.camera.top = 80;
+scene.add(sunLight);
+
+const sunMesh = new THREE.Mesh(new THREE.BoxGeometry(10,10,10),
+  new THREE.MeshBasicMaterial({color:0xffeb3b}));
+scene.add(sunMesh);
+
+const moonMesh = new THREE.Mesh(new THREE.BoxGeometry(6,6,6),
+  new THREE.MeshBasicMaterial({color:0xddeeff}));
+scene.add(moonMesh);
+
+// Stars
+const starBuf = new Float32Array(1200*3);
+for(let i=0;i<1200*3;i+=3){
+  const th=Math.random()*Math.PI*2, ph=Math.random()*Math.PI;
+  starBuf[i]=Math.sin(ph)*Math.cos(th)*250;
+  starBuf[i+1]=Math.cos(ph)*250;
+  starBuf[i+2]=Math.sin(ph)*Math.sin(th)*250;
+}
+const starGeo=new THREE.BufferGeometry();
+starGeo.setAttribute('position',new THREE.BufferAttribute(starBuf,3));
+const starField=new THREE.Points(starGeo,new THREE.PointsMaterial({color:0xffffff,size:1.0}));
+scene.add(starField); starField.visible=false;
+
+// ════════════════════════════════════════
+//  RAIN
+// ════════════════════════════════════════
+const RAIN_N=3500;
+const rainBuf=new Float32Array(RAIN_N*3);
+for(let i=0;i<RAIN_N*3;i+=3){
+  rainBuf[i]=(Math.random()-.5)*120;
+  rainBuf[i+1]=Math.random()*55;
+  rainBuf[i+2]=(Math.random()-.5)*120;
+}
+const rainGeo=new THREE.BufferGeometry();
+rainGeo.setAttribute('position',new THREE.BufferAttribute(rainBuf,3));
+const rainSys=new THREE.Points(rainGeo,
+  new THREE.PointsMaterial({color:0x88ccff,size:0.14,transparent:true,opacity:0.65}));
+scene.add(rainSys); rainSys.visible=false;
+
+// ════════════════════════════════════════
+//  BLOCK SYSTEM
+// ════════════════════════════════════════
+function addBlock(x,y,z,type){
+  const mat=MAT[type]||MAT.stone;
+  const mesh=new THREE.Mesh(BOX,mat);
+  mesh.position.set(x,y,z);
+  mesh.name=type;
+  mesh.castShadow=true; mesh.receiveShadow=true;
+
+  if(type==='fire'){
+    const fl=new THREE.PointLight(0xff6600,2.5,8);
+    mesh.add(fl);
+  }
+
+  allBlocks.push(mesh);
+  if(type==='ladder') ladders.push(mesh);
+  else if(type!=='fire'&&type!=='water') collidable.push(mesh);
+  if(type==='water') waterMeshes.push(mesh);
+
+  scene.add(mesh);
+  return mesh;
+}
+
+function removeBlock(mesh){
+  scene.remove(mesh);
+  const f=arr=>{ const i=arr.indexOf(mesh);if(i>-1)arr.splice(i,1);};
+  f(allBlocks);f(collidable);f(ladders);
+  const wi=waterMeshes.indexOf(mesh);if(wi>-1)waterMeshes.splice(wi,1);
+}
+
+// ════════════════════════════════════════
+//  CLOUDS
+// ════════════════════════════════════════
+for(let i=0;i<40;i++){
+  const g=new THREE.Group();
+  g.position.set((Math.random()-.5)*WORLD,(30+Math.random()*8),(Math.random()-.5)*WORLD);
+  for(let j=0;j<5+Math.floor(Math.random()*7);j++){
+    const cm=new THREE.Mesh(
+      new THREE.BoxGeometry(3+Math.random()*3,1+Math.random()*0.6,2+Math.random()*2),
+      MAT.cloud);
+    cm.position.set(Math.random()*6-3,Math.random()*0.5,Math.random()*4-2);
+    g.add(cm);
+  }
+  scene.add(g); clouds.push(g);
+}
+
+// ════════════════════════════════════════
+//  ANIMAL FACTORY
+// ════════════════════════════════════════
+function animalBody(bW,bH,bD,bMat,hW,hH,hD,hMat,legMat,legH,x,y,z){
+  const g=new THREE.Group(); g.position.set(x,y,z);
+  const body=new THREE.Mesh(new THREE.BoxGeometry(bW,bH,bD),bMat);
+  g.add(body);
+  const head=new THREE.Mesh(new THREE.BoxGeometry(hW,hH,hD),hMat);
+  head.position.set(0,bH*.5+hH*.4,bD*.38);
+  g.add(head);
+  [[-bW*.3,-bH*.5,-bD*.28],[bW*.3,-bH*.5,-bD*.28],
+   [-bW*.3,-bH*.5,bD*.28],[bW*.3,-bH*.5,bD*.28]].forEach(([lx,ly,lz])=>{
+    const leg=new THREE.Mesh(new THREE.BoxGeometry(.22,legH,.22),legMat);
+    leg.position.set(lx,ly-legH*.45,lz); g.add(leg);
+  });
+  return g;
+}
+
+function mkCow(x,y,z){
+  const g=animalBody(.95,.72,1.45,MAT.cow,.65,.52,.65,MAT.cow,MAT.cow,.62,x,y,z);
+  const horn=new THREE.Mesh(new THREE.BoxGeometry(.1,.22,.1),new THREE.MeshLambertMaterial({color:0xf5e6c8}));
+  horn.position.set(-.22,.72+.22,1.45*.38);g.add(horn);
+  const h2=horn.clone();h2.position.x=.22;g.add(h2);
+  scene.add(g);
+  cows.push({mesh:g,dir:Math.random()*Math.PI*2,spd:.4+Math.random()*.3,t:0,mt:3+Math.random()*5,legs:g.children.slice(3),legT:0});
+}
+function mkPig(x,y,z){
+  const g=animalBody(.82,.57,1.1,MAT.pig,.56,.5,.56,MAT.pig,MAT.pig,.5,x,y,z);
+  const snout=new THREE.Mesh(new THREE.BoxGeometry(.32,.26,.14),new THREE.MeshLambertMaterial({color:0xe07070}));
+  snout.position.set(0,.5*.25,1.1*.38+.28);g.add(snout);
+  scene.add(g);
+  pigs.push({mesh:g,dir:Math.random()*Math.PI*2,spd:.5+Math.random()*.3,t:0,mt:2+Math.random()*4,legs:g.children.slice(3),legT:0});
+}
+function mkChicken(x,y,z){
+  const g=animalBody(.5,.42,.72,MAT.chicken,.36,.36,.36,MAT.chicken,
+    new THREE.MeshLambertMaterial({color:0xf5a623}),.38,x,y,z);
+  const beak=new THREE.Mesh(new THREE.BoxGeometry(.14,.1,.2),new THREE.MeshLambertMaterial({color:0xffa500}));
+  beak.position.set(0,.42*.18,.72*.38+.22);g.add(beak);
+  const comb=new THREE.Mesh(new THREE.BoxGeometry(.1,.16,.1),new THREE.MeshLambertMaterial({color:0xff3333}));
+  comb.position.set(0,.42*.5+.24,.72*.35);g.add(comb);
+  // Wings
+  const wing=new THREE.Mesh(new THREE.BoxGeometry(.12,.28,.5),new THREE.MeshLambertMaterial({color:0xe8e8e8}));
+  wing.position.set(.28,.04,0);g.add(wing);
+  const w2=wing.clone();w2.position.x=-.28;g.add(w2);
+  scene.add(g);
+  chickens.push({mesh:g,dir:Math.random()*Math.PI*2,spd:.7+Math.random()*.5,t:0,mt:1+Math.random()*2.5,legs:g.children.slice(3),legT:0,hopT:0});
+}
+function mkSheep(x,y,z){
+  const g=animalBody(.82,.72,1.22,MAT.sheep,.52,.52,.52,
+    new THREE.MeshLambertMaterial({color:0xffcccc}),
+    new THREE.MeshLambertMaterial({color:0x333333}),.55,x,y,z);
+  // Wool puff
+  const wool=new THREE.Mesh(new THREE.BoxGeometry(.9,.62,1.3),
+    new THREE.MeshLambertMaterial({color:0xeeeeee}));
+  wool.position.set(0,.1,0); g.add(wool);
+  scene.add(g);
+  sheeps.push({mesh:g,dir:Math.random()*Math.PI*2,spd:.4+Math.random()*.3,t:0,mt:4+Math.random()*6,legs:g.children.slice(3),legT:0});
+}
+
+// ════════════════════════════════════════
+//  MOB FACTORIES
+// ════════════════════════════════════════
+function mkZombie(x,y,z){
+  const g=new THREE.Group(); g.position.set(x,y,z);
+  const body=new THREE.Mesh(new THREE.BoxGeometry(.6,.75,.3),MAT.zombieClothes);
+  body.position.y=.75; g.add(body);
+  const head=new THREE.Mesh(new THREE.BoxGeometry(.52,.52,.52),MAT.zombie);
+  head.position.y=1.46; g.add(head);
+  const aGeo=new THREE.BoxGeometry(.22,.6,.22);
+  const a1=new THREE.Mesh(aGeo,MAT.zombie); a1.position.set(-.43,1.18,.42); a1.rotation.x=-Math.PI/2; g.add(a1);
+  const a2=new THREE.Mesh(aGeo,MAT.zombie); a2.position.set( .43,1.18,.42); a2.rotation.x=-Math.PI/2; g.add(a2);
+  const lGeo=new THREE.BoxGeometry(.24,.55,.24);
+  const l1=new THREE.Mesh(lGeo,MAT.zombieClothes); l1.position.set(-.17,.22,0); g.add(l1);
+  const l2=new THREE.Mesh(lGeo,MAT.zombieClothes); l2.position.set( .17,.22,0); g.add(l2);
+  scene.add(g);
+  zombies.push({mesh:g,spd:2.0+Math.random()*.9,hp:3,arms:[a1,a2],legs:[l1,l2],walkT:0});
+}
+function mkCreeper(x,y,z){
+  const g=new THREE.Group(); g.position.set(x,y,z);
+  const body=new THREE.Mesh(new THREE.BoxGeometry(.65,.9,.45),MAT.creeper);
+  body.position.y=.9; g.add(body);
+  const head=new THREE.Mesh(new THREE.BoxGeometry(.72,.72,.72),MAT.creeper);
+  head.position.y=1.85; g.add(head);
+  [[-.2,.3,.1],[.2,.3,.1],[-.2,.3,-.1],[.2,.3,-.1]].forEach(([lx,ly,lz])=>{
+    const leg=new THREE.Mesh(new THREE.BoxGeometry(.28,.58,.28),MAT.creeper);
+    leg.position.set(lx,ly,lz); g.add(leg);
+  });
+  scene.add(g);
+  creepers.push({mesh:g,spd:1.5+Math.random()*.5,hp:1,fuseT:0,fusing:false,exploded:false});
+}
+
+// ════════════════════════════════════════
+//  EXPLOSION
+// ════════════════════════════════════════
+function explode(pos){
+  notify('💥 BOOM!','#ff4400');
+  const d=camera.position.distanceTo(pos);
+  if(d<7){ hp=Math.max(0,hp-(7-d)*9); updateBars(); dmgFlash('rgba(255,80,0,.35)'); }
+  for(let i=0;i<40;i++){
+    const p=new THREE.Mesh(
+      new THREE.BoxGeometry(.2,.2,.2),
+      new THREE.MeshBasicMaterial({color:Math.random()>.5?0xff5500:0xffaa00}));
+    p.position.copy(pos);
+    const v=new THREE.Vector3((Math.random()-.5)*10,Math.random()*10,(Math.random()-.5)*10);
+    scene.add(p); particles.push({mesh:p,vel:v,life:1.8});
+  }
+  for(let i=allBlocks.length-1;i>=0;i--){
+    if(allBlocks[i].position.distanceTo(pos)<4){
+      removeBlock(allBlocks[i]);
+    }
+  }
+}
+
+// ════════════════════════════════════════
+//  COINS & DROPS
+// ════════════════════════════════════════
+function mkCoin(x,y,z){
+  const g=new THREE.CylinderGeometry(.3,.3,.08,12); g.rotateX(Math.PI/2);
+  const m=new THREE.Mesh(g,MAT.gold); m.position.set(x,y,z);
+  scene.add(m); coins.push(m);
+}
+function mkDrop(x,y,z,type){
+  const mat=(MAT[type]||MAT.stone).clone();
+  const m=new THREE.Mesh(new THREE.BoxGeometry(.28,.28,.28),mat);
+  m.position.set(x,y+.5,z); m.name='drop_'+type;
+  scene.add(m); drops.push({mesh:m,type});
+}
+function mkArrow3D(origin,dir){
+  const g=new THREE.Group();
+  const shaft=new THREE.Mesh(new THREE.CylinderGeometry(.03,.03,.9,6),MAT.arrow);
+  shaft.rotation.x=Math.PI/2; g.add(shaft);
+  const tip=new THREE.Mesh(new THREE.ConeGeometry(.07,.28,6),new THREE.MeshLambertMaterial({color:0x888888}));
+  tip.position.z=-.55; tip.rotation.x=Math.PI/2; g.add(tip);
+  g.position.copy(origin);
+  const up=new THREE.Vector3(0,1,0);
+  if(Math.abs(dir.dot(up))<0.99) g.quaternion.setFromUnitVectors(up,dir.normalize());
+  scene.add(g);
+  arrows3D.push({mesh:g,vel:dir.clone().multiplyScalar(28),life:3.5});
+}
+
+// ════════════════════════════════════════
+//  TERRAIN — 200×200 with biomes
+// ════════════════════════════════════════
+function biome(x,z){
+  if(x>55&&z>55) return 'desert';
+  if(x<-55&&z>40) return 'snow';
+  if(Math.sqrt(x*x+z*z)>75) return 'mountain';
+  return 'plains';
+}
+function height(x,z){
+  const b=biome(x,z);
+  let h=Math.sin(x/14)*Math.cos(z/14)*5+Math.sin(x/6)*Math.cos(z/6)*1.8;
+  if(b==='mountain') h+=Math.sin(x/9)*Math.cos(z/9)*14+6;
+  if(b==='desert')   h=Math.abs(Math.sin(x/18)*Math.cos(z/18))*3;
+  return Math.max(0,Math.round(h));
+}
+
+// Generate world in chunks to avoid freezing
+const CHUNK = 20;
+let genX = -WORLD/2, genZ = -WORLD/2, worldReady = false;
+
+function genChunk() {
+  const endX = Math.min(genX+CHUNK, WORLD/2);
+  const endZ = Math.min(genZ+CHUNK, WORLD/2);
+  for (let x=genX; x<endX; x++) {
+    for (let z=genZ; z<endZ; z++) {
+      const b=biome(x,z);
+      const y=height(x,z);
+
+      if(b==='desert'){
+        addBlock(x,y,z,'sand');
+        addBlock(x,y-1,z,'sand');
+        if(Math.random()<.01&&Math.abs(x)>16){
+          const h=2+Math.floor(Math.random()*2);
+          for(let ty=1;ty<=h;ty++) addBlock(x,y+ty,z,'sand'); // cactus style
+        }
+      } else if(b==='snow'){
+        addBlock(x,y,z,'snow');
+        addBlock(x,y-1,z,'stone');
+        if(Math.random()<.025&&Math.abs(x)>16){
+          const h=3+Math.floor(Math.random()*2);
+          for(let ty=1;ty<=h;ty++) addBlock(x,y+ty,z,'wood');
+          for(let lx=x-2;lx<=x+2;lx++) for(let lz=z-2;lz<=z+2;lz++)
+            for(let ly=h-1;ly<=h+2;ly++)
+              if(Math.abs(lx-x)+Math.abs(lz-z)+Math.abs(ly-h)<4&&Math.random()>.25)
+                addBlock(lx,y+ly,lz,'snow');
+        }
+      } else if(b==='mountain'){
+        addBlock(x,y,z,y>12?'snow':'stone');
+        addBlock(x,y-1,z,'stone');
+        addBlock(x,y-2,z,'stone');
+      } else {
+        // Plains
+        addBlock(x,y,z,'grass');
+        addBlock(x,y-1,z,'dirt');
+        addBlock(x,y-2,z,'stone');
+        // Trees
+        if(Math.random()<.015&&Math.abs(x)>16){
+          const h=4+Math.floor(Math.random()*3);
+          for(let ty=1;ty<=h;ty++) addBlock(x,y+ty,z,'wood');
+          for(let lx=x-2;lx<=x+2;lx++) for(let lz=z-2;lz<=z+2;lz++)
+            for(let ly=h-1;ly<=h+2;ly++)
+              if(Math.abs(lx-x)+Math.abs(lz-z)+Math.abs(ly-h)<4&&Math.random()>.2)
+                addBlock(lx,y+ly,lz,'leaves');
+        }
+        // Ponds
+        if(Math.random()<.002&&y===0)
+          for(let wx=-2;wx<=2;wx++) for(let wz=-2;wz<=2;wz++)
+            addBlock(x+wx,0,z+wz,'water');
+      }
+
+      // Animals
+      if(b==='plains'){
+        if(Math.random()<.0035) mkCow(x,y+2,z);
+        if(Math.random()<.0035) mkPig(x,y+2,z);
+        if(Math.random()<.004)  mkChicken(x,y+2,z);
+        if(Math.random()<.003)  mkSheep(x,y+2,z);
+      }
+      // Coins
+      if(Math.random()<.006) mkCoin(x,y+1.8,z);
+    }
+  }
+  genZ += CHUNK;
+  if(genZ >= WORLD/2){ genZ=-WORLD/2; genX+=CHUNK; }
+  if(genX >= WORLD/2){
+    worldReady=true;
+    buildVillage(10,10);
+    buildVillage(-22,18);
+    buildVillage(30,-20);
+    notify('World ready! 🌍','#7fff7f');
+  }
+}
+
+// ════════════════════════════════════════
+//  VILLAGE / HOUSE
+// ════════════════════════════════════════
+function buildVillage(ox,oz){
+  const fy=height(ox,oz)+4;
+  for(let x=-3;x<=3;x++) for(let z=-3;z<=3;z++){
+    addBlock(ox+x,fy,oz+z,'wood');
+    addBlock(ox+x,fy-1,oz+z,'stone');
+    addBlock(ox+x,fy-2,oz+z,'stone');
+  }
+  for(let y=1;y<=4;y++){
+    for(let x=-3;x<=3;x++){
+      addBlock(ox+x,fy+y,oz-3,'stone');
+      if(Math.abs(x)>0) addBlock(ox+x,fy+y,oz+3,'stone');
+      addBlock(ox-3,fy+y,oz+x,'stone');
+      addBlock(ox+3,fy+y,oz+x,'stone');
+    }
+  }
+  for(let x=-3;x<=3;x++) for(let z=-3;z<=3;z++) addBlock(ox+x,fy+5,oz+z,'wood');
+  addBlock(ox,fy+1,oz+3,'door');
+  addBlock(ox+2,fy+1,oz+2,'fire');
+  for(let y=0;y<=5;y++) addBlock(ox-2,fy+y,oz-2,'ladder');
+}
+
+// ════════════════════════════════════════
+//  BUILD RECIPES
+// ════════════════════════════════════════
+const RECIPES = [
+  {name:'Small House',icon:'🏠',cost:{wood:10,stone:20},fn:(x,y,z)=>buildVillage(x,z)},
+  {name:'Tower (5 high)',icon:'🗼',cost:{stone:30},fn:(x,y,z)=>{
+    for(let ty=0;ty<5;ty++) for(let tx=-1;tx<=1;tx++) for(let tz=-1;tz<=1;tz++)
+      if(tx===0||tz===0) addBlock(x+tx,y+ty,z+tz,'stone');
+  }},
+  {name:'Bridge (10 long)',icon:'🌉',cost:{wood:10},fn:(x,y,z)=>{
+    for(let i=0;i<10;i++) addBlock(x+i,y,z,'wood');
+  }},
+  {name:'Wall Segment',icon:'🧱',cost:{stone:6},fn:(x,y,z)=>{
+    for(let ty=0;ty<4;ty++) addBlock(x,y+ty,z,'stone');
+  }},
+  {name:'Bonfire',icon:'🔥',cost:{wood:3},fn:(x,y,z)=>addBlock(x,y,z,'fire')},
+];
+
+function openBuild(){
+  if(!controls.isLocked) return;
+  panelOpen=true;
+  controls.unlock();
+  const grid=document.getElementById('recipe-grid');
+  grid.innerHTML='';
+  RECIPES.forEach(r=>{
+    const div=document.createElement('div');
+    div.className='recipe';
+    const costStr=Object.entries(r.cost).map(([k,v])=>v+' '+k).join(', ');
+    div.innerHTML=`<div class="recipe-icon">${r.icon}</div>
+      <div class="recipe-info">
+        <div class="recipe-name">${r.name}</div>
+        <div class="recipe-cost">Cost: ${costStr}</div>
+      </div>`;
+    div.onclick=()=>{
+      // Check cost
+      for(const [type,need] of Object.entries(r.cost)){
+        if((invItems[type]||0)<need){ notify('Not enough '+type+'!','#ff5555'); return; }
+      }
+      for(const [type,need] of Object.entries(r.cost)) invItems[type]-=need;
+      // Place near player
+      const px=Math.round(camera.position.x);
+      const pz=Math.round(camera.position.z);
+      const py=height(px,pz)+4;
+      r.fn(px+3,py,pz+3);
+      notify('Built: '+r.name+'! 🏗️','#aaffaa');
+      closePanel('build-menu');
+    };
+    grid.appendChild(div);
+  });
+  document.getElementById('build-menu').style.display='block';
+}
+window.closePanel=function(id){
+  document.getElementById(id).style.display='none';
+  panelOpen=false;
+  controls.lock();
+};
+
+// ════════════════════════════════════════
+//  INVENTORY UI
+// ════════════════════════════════════════
+function openInventory(){
+  panelOpen=true;
+  controls.unlock();
+  const grid=document.getElementById('inv-grid');
+  grid.innerHTML='';
+  const all={grass:0,dirt:0,stone:0,wood:0,leaves:0,sand:0,...invItems};
+  for(const [type,cnt] of Object.entries(all)){
+    const s=document.createElement('div'); s.className='inv-slot';
+    s.innerHTML=`<span>${BLOCK_ICONS[type]||'📦'}</span>
+      <div style="font-size:9px">${type}</div>
+      <div class="inv-count">${cnt===0?'∞':cnt}</div>`;
+    s.onclick=()=>{
+      if(['beef','pork','chicken'].includes(type)){
+        if((invItems[type]||0)>0){
+          hun=Math.min(MAX_HUN,hun+25); hp=Math.min(MAX_HP,hp+15);
+          invItems[type]--; notify('🍖 Yum! +15HP +25Hunger','#aaffaa');
+          updateBars(); closePanel('inventory');
+        }
+      } else {
+        selBlock=type;
+        updateHotbarLabel();
+        closePanel('inventory');
+      }
+    };
+    grid.appendChild(s);
+  }
+  document.getElementById('inventory').style.display='block';
+}
+window.eatFood=function(){
+  const foods=['beef','pork','chicken'];
+  for(const f of foods){
+    if((invItems[f]||0)>0){
+      hun=Math.min(MAX_HUN,hun+25);hp=Math.min(MAX_HP,hp+15);
+      invItems[f]--; notify('🍖 Nom nom! +15HP +25Hunger','#aaffaa');
+      updateBars(); return;
+    }
+  }
+  notify('No food in inventory!','#ff5555');
+};
+
+// ════════════════════════════════════════
+//  HAND / WEAPON
+// ════════════════════════════════════════
+const handGrp=new THREE.Group(); camera.add(handGrp);
+const sword=new THREE.Group();
+const handle=new THREE.Mesh(new THREE.CylinderGeometry(.04,.04,.38),
+  new THREE.MeshLambertMaterial({color:0x333333}));
+sword.add(handle);
+const blade=new THREE.Mesh(new THREE.BoxGeometry(.1,.02,1.35),
+  new THREE.MeshLambertMaterial({color:0x88d4f0}));
+blade.position.z=-.78; sword.add(blade);
+const guard=new THREE.Mesh(new THREE.BoxGeometry(.34,.07,.07),
+  new THREE.MeshLambertMaterial({color:0xd4a017}));
+guard.position.z=-.12; sword.add(guard);
+sword.rotation.x=Math.PI/2;
+sword.position.set(.5,-.44,-.58);
+handGrp.add(sword);
+scene.add(camera);
+
+// ════════════════════════════════════════
+//  CONTROLS
+// ════════════════════════════════════════
+const controls=new PointerLockControls(camera,document.body);
+document.getElementById('play-btn').onclick=()=>controls.lock();
+document.getElementById('resume-btn').onclick=()=>{
+  document.getElementById('pause-screen').style.display='none';
+  controls.lock();
+};
+controls.addEventListener('lock',()=>{
+  document.getElementById('start-screen').style.display='none';
+  document.getElementById('pause-screen').style.display='none';
+  panelOpen=false;
+});
+controls.addEventListener('unlock',()=>{
+  if(!panelOpen) document.getElementById('pause-screen').style.display='flex';
+});
+
+const move={f:0,b:0,l:0,r:0,jump:false,sprint:false};
+
+document.addEventListener('keydown',e=>{
+  if(panelOpen){ if(e.code==='KeyE') closePanel('inventory'); if(e.code==='KeyB') closePanel('build-menu'); return; }
+  switch(e.code){
+    case 'KeyW': move.f=1; break; case 'KeyS': move.b=1; break;
+    case 'KeyA': move.l=1; break; case 'KeyD': move.r=1; break;
+    case 'Space': move.jump=true; break;
+    case 'ShiftLeft': move.sprint=true; break;
+    case 'KeyE': if(controls.isLocked) openInventory(); break;
+    case 'KeyB': if(controls.isLocked) openBuild(); break;
+    case 'KeyF': shootArrow(); break;
+    case 'KeyH': hudVisible=!hudVisible; document.getElementById('hud-left').style.opacity=hudVisible?1:0;
+                 document.getElementById('hud-right').style.opacity=hudVisible?1:0; break;
+  }
+  // Hotbar numbers
+  if(e.key>='1'&&e.key<='9'){
+    setHotbar(parseInt(e.key)-1);
+  }
+});
+document.addEventListener('keyup',e=>{
+  switch(e.code){
+    case 'KeyW':move.f=0;break; case 'KeyS':move.b=0;break;
+    case 'KeyA':move.l=0;break; case 'KeyD':move.r=0;break;
+    case 'Space':move.jump=false;break; case 'ShiftLeft':move.sprint=false;break;
+  }
+});
+
+// Mouse wheel hotbar scroll
+document.addEventListener('wheel',e=>{
+  if(!controls.isLocked) return;
+  hotbarIdx=(hotbarIdx+Math.sign(e.deltaY)+9)%9;
+  setHotbar(hotbarIdx);
+});
+
+function setHotbar(idx){
+  hotbarIdx=idx;
+  document.querySelectorAll('.slot').forEach(s=>s.classList.remove('active'));
+  const el=document.getElementById('s'+idx);
+  if(el) el.classList.add('active');
+  selBlock=HOTBAR[idx];
+  updateHotbarLabel();
+}
+function updateHotbarLabel(){
+  document.getElementById('block-el').innerText=selBlock.toUpperCase();
+  document.getElementById('block-preview').innerText=
+    (BLOCK_ICONS[selBlock]||'🧱')+' '+selBlock.toUpperCase();
+}
+
+// Prevent context menu
+document.addEventListener('contextmenu',e=>e.preventDefault());
+
+// ════════════════════════════════════════
+//  RAYCASTER & CLICK
+// ════════════════════════════════════════
+const ray=new THREE.Raycaster(undefined,undefined,0,8);
+
+document.addEventListener('mousedown',e=>{
+  if(!controls.isLocked||panelOpen) return;
+
+  // Sword swing
+  if(!isSwinging){
+    isSwinging=true; let t=0;
+    const iv=setInterval(()=>{
+      t+=.25;
+      sword.rotation.x=(Math.PI/2)+Math.sin(t)*1.6;
+      sword.rotation.z=Math.sin(t)*.3;
+      if(t>=Math.PI){sword.rotation.x=Math.PI/2;sword.rotation.z=0;isSwinging=false;clearInterval(iv);}
+    },14);
+  }
+
+  ray.setFromCamera(new THREE.Vector2(0,0),camera);
+
+  // Hit mob?
+  const mobMeshes=[
+    ...zombies.map(z=>z.mesh),...creepers.map(c=>c.mesh),
+    ...cows.map(c=>c.mesh),...pigs.map(p=>p.mesh),
+    ...chickens.map(c=>c.mesh),...sheeps.map(s=>s.mesh)
+  ];
+  const mHit=ray.intersectObjects(mobMeshes,true);
+  if(mHit.length>0&&mHit[0].distance<6){
+    hitMob(mHit[0].object); return;
+  }
+
+  // Hit block?
+  const bHit=ray.intersectObjects(allBlocks);
+  if(bHit.length>0&&bHit[0].distance<8){
+    const hit=bHit[0]; const obj=hit.object;
+    if(e.button===0){
+      mkDrop(obj.position.x,obj.position.y,obj.position.z,obj.name);
+      removeBlock(obj); gainXP(5);
+      notify('-1 Block mined','#aad4ff');
+    } else if(e.button===2){
+      if(obj.name==='door'){
+        obj.rotation.y=obj.rotation.y===0?Math.PI/2:0;
+        const ci=collidable.indexOf(obj);
+        if(ci>-1) collidable.splice(ci,1); else collidable.push(obj);
+        return;
+      }
+      const n=hit.face.normal;
+      const p=hit.point.clone().add(n).floor();
+      if(p.distanceTo(camera.position)>1.5){
+        addBlock(p.x+.5,p.y+.5,p.z+.5,selBlock);
+        gainXP(2);
+      }
+    }
+  }
+});
+
+function hitMob(mesh){
+  // Walk up parent chain
+  let root=mesh;
+  while(root.parent&&!(root.parent instanceof THREE.Scene)) root=root.parent;
+
+  for(let i=zombies.length-1;i>=0;i--){
+    if(zombies[i].mesh===root){
+      zombies[i].hp--;
+      if(zombies[i].hp<=0){
+        scene.remove(root); zombies.splice(i,1);
+        kf('🧟 Zombie Slain!','#55ff55'); score+=500; gainXP(30); updateUI();
+      } return;
+    }
+  }
+  for(let i=creepers.length-1;i>=0;i--){
+    if(creepers[i].mesh===root){
+      scene.remove(root); creepers.splice(i,1);
+      kf('💥 Creeper Slain!','#55ffaa'); score+=800; gainXP(50); updateUI(); return;
+    }
+  }
+  for(const [arr,food,icon] of [[cows,'beef','🥩'],[pigs,'pork','🥓'],[chickens,'chicken','🍗'],[sheeps,'wool','🧶']]){
+    const i=arr.findIndex(a=>a.mesh===root);
+    if(i>-1){
+      scene.remove(root); arr.splice(i,1);
+      invItems[food]=(invItems[food]||0)+2;
+      notify(icon+' +2 '+food,'#ffbb55'); gainXP(10); return;
+    }
+  }
+}
+
+// ════════════════════════════════════════
+//  ARROW
+// ════════════════════════════════════════
+function shootArrow(){
+  if(!controls.isLocked||panelOpen) return;
+  if(arrowCount<=0){ notify('No arrows! 🏹','#ff5555'); return; }
+  arrowCount--;
+  document.getElementById('arrow-el').innerText=arrowCount;
+  const dir=new THREE.Vector3();
+  camera.getWorldDirection(dir);
+  mkArrow3D(camera.position.clone().addScaledVector(dir,.6),dir);
+  notify('🏹 Fired! ('+arrowCount+' left)','#aaffaa');
+}
+
+// ════════════════════════════════════════
+//  HUD HELPERS
+// ════════════════════════════════════════
+function updateBars(){
+  document.getElementById('hp-fill').style.width=Math.max(0,hp)+'%';
+  document.getElementById('hun-fill').style.width=Math.max(0,hun)+'%';
+  document.getElementById('xp-fill').style.width=(xp/MAX_XP*100)+'%';
+  if(hp<=0) gameOver();
+}
+function updateUI(){
+  document.getElementById('score-el').innerText='Score: '+score;
+  document.getElementById('level-el').innerText='Lv.'+level+' — XP: '+xp+'/100';
+}
+function gainXP(n){ xp+=n; score+=n*2;
+  if(xp>=MAX_XP){ xp=0; level++; hp=Math.min(MAX_HP,hp+30);
+    notify('⭐ LEVEL UP! Lv.'+level,'#ffff00'); arrowCount+=3;
+    document.getElementById('arrow-el').innerText=arrowCount;
+  }
+  updateBars(); updateUI();
+}
+function notify(msg,col='#fff'){
+  const d=document.createElement('div');
+  d.className='notif'; d.innerText=msg; d.style.color=col;
+  d.style.borderLeftColor=col;
+  document.getElementById('notifs').appendChild(d);
+  setTimeout(()=>d.remove(),2800);
+}
+function kf(msg,col='#fff'){
+  const d=document.createElement('div');
+  d.className='kf'; d.innerText=msg; d.style.color=col;
+  document.getElementById('killfeed').appendChild(d);
+  setTimeout(()=>d.remove(),3200);
+}
+function dmgFlash(col){
+  const o=document.getElementById('dmg-flash');
+  o.style.background=col;
+  setTimeout(()=>o.style.background='transparent',200);
+}
+function gameOver(){
+  controls.unlock();
+  setTimeout(()=>alert('💀 GAME OVER!\nScore: '+score+'\nLevel: '+level+'\n\nRefresh to play again!'),100);
+}
+
+// ════════════════════════════════════════
+//  MINIMAP
+// ════════════════════════════════════════
+const mmcv=document.getElementById('minimap');
+const mmctx=mmcv.getContext('2d');
+let mmT=0;
+function drawMinimap(){
+  const S=130; const sc=S/WORLD;
+  mmctx.fillStyle='#1a2a1a'; mmctx.fillRect(0,0,S,S);
+  // Biome zones
+  mmctx.fillStyle='#2d5a2d'; mmctx.fillRect(0,0,S,S);
+  mmctx.fillStyle='#b89030'; mmctx.fillRect(S*.5,S*.5,S*.5,S*.5);
+  mmctx.fillStyle='#88aacc'; mmctx.fillRect(0,S*.5,S*.5,S*.5);
+  mmctx.fillStyle='#666';
+  mmctx.beginPath(); mmctx.arc(S*.5,S*.5,S*.22,0,Math.PI*2); mmctx.fill();
+
+  // Animals white dots
+  mmctx.fillStyle='#fff';
+  for(const a of [...cows,...pigs,...chickens,...sheeps]){
+    const ax=((a.mesh.position.x+WORLD/2)*sc)|0;
+    const az=((a.mesh.position.z+WORLD/2)*sc)|0;
+    mmctx.fillRect(ax-1,az-1,2,2);
+  }
+  // Zombies red
+  mmctx.fillStyle='#f55';
+  for(const z of [...zombies,...creepers]){
+    const zx=((z.mesh.position.x+WORLD/2)*sc)|0;
+    const zz=((z.mesh.position.z+WORLD/2)*sc)|0;
+    mmctx.fillRect(zx-1,zz-1,3,3);
+  }
+  // Player cyan with direction
+  const px=((camera.position.x+WORLD/2)*sc)|0;
+  const pz=((camera.position.z+WORLD/2)*sc)|0;
+  mmctx.fillStyle='#0ff';
+  mmctx.fillRect(px-3,pz-3,6,6);
+}
+
+// ════════════════════════════════════════
+//  ANIMAL AI (smooth leg animation)
+// ════════════════════════════════════════
+function tickAnimal(a,delta){
+  const m=a.mesh;
+  a.t+=delta;
+  if(a.t>a.mt){ a.t=0; a.mt=2+Math.random()*5; a.dir=Math.random()*Math.PI*2; }
+  m.rotation.y=a.dir;
+  const dx=Math.cos(a.dir)*a.spd*delta;
+  const dz=Math.sin(a.dir)*a.spd*delta;
+  const nx=m.position.x+dx, nz=m.position.z+dz;
+  if(Math.abs(nx)<WORLD/2&&Math.abs(nz)<WORLD/2){ m.position.x=nx; m.position.z=nz; }
+  // Gravity
+  if(m.position.y>1.5) m.position.y-=5*delta; else m.position.y=1.2;
+  // Leg walking animation
+  if(a.legs&&a.legs.length>=2){
+    a.legT=(a.legT||0)+delta*a.spd*6;
+    const swing=Math.sin(a.legT)*.4;
+    a.legs[0].rotation.x= swing;
+    if(a.legs[1]) a.legs[1].rotation.x=-swing;
+    if(a.legs[2]) a.legs[2].rotation.x=-swing;
+    if(a.legs[3]) a.legs[3].rotation.x= swing;
+  }
+}
+
+// ════════════════════════════════════════
+//  PHYSICS
+// ════════════════════════════════════════
+const vel=new THREE.Vector3();
+let prevT=performance.now();
+let hunT=0, regenT=0, bobT=0;
+
+// ════════════════════════════════════════
+//  MAIN LOOP
+// ════════════════════════════════════════
+function animate(){
+  requestAnimationFrame(animate);
+  const now=performance.now();
+  const dt=Math.min((now-prevT)/1000,.08);
+  prevT=now;
+
+  // World gen (progressive)
+  if(!worldReady) genChunk();
+
+  // ── Day/Night ──
+  gameTime+=dt;
+  if(gameTime>DAY_DUR) gameTime=0;
+  const ang=(gameTime/DAY_DUR)*Math.PI*2;
+  const sunH=Math.sin(ang);
+  isDay=sunH>-0.18;
+
+  sunMesh.position.set(Math.cos(ang)*120,Math.sin(ang)*120,40);
+  sunLight.position.copy(sunMesh.position);
+  moonMesh.position.set(-Math.cos(ang)*120,-Math.sin(ang)*120,40);
+
+  // Smooth sky colour transition
+  const t=THREE.MathUtils.clamp((sunH+0.18)/0.36,0,1);
+  scene.background.lerpColors(new THREE.Color(0x050510),new THREE.Color(0x87CEEB),t);
+  scene.fog.color.copy(scene.background);
+  ambient.intensity=THREE.MathUtils.lerp(0.25,0.92,t);
+  sunLight.intensity=THREE.MathUtils.lerp(0,1.0,t);
+  starField.visible=!isDay;
+  document.getElementById('time-el').innerText=isDay?'☀ Day':'🌙 Night';
+
+  // Rain at night
+  if(!isDay){
+    rainSys.visible=true;
+    const rp=rainSys.geometry.attributes.position.array;
+    for(let i=1;i<rp.length;i+=3){ rp[i]-=45*dt; if(rp[i]<0) rp[i]=55; }
+    rainSys.geometry.attributes.position.needsUpdate=true;
+    rainSys.position.set(camera.position.x,0,camera.position.z);
+    if(!nightSpawned){
+      nightSpawned=true;
+      notify('🌙 Night falls — Survive!','#ff3333');
+      for(let i=0;i<10;i++){
+        const th=Math.random()*Math.PI*2;
+        mkZombie(camera.position.x+Math.cos(th)*24,5,camera.position.z+Math.sin(th)*24);
+      }
+      for(let i=0;i<4;i++){
+        const th=Math.random()*Math.PI*2;
+        mkCreeper(camera.position.x+Math.cos(th)*28,5,camera.position.z+Math.sin(th)*28);
+      }
+    }
+  } else {
+    rainSys.visible=false;
+    if(nightSpawned){
+      nightSpawned=false;
+      zombies.forEach(z=>scene.remove(z.mesh)); zombies.length=0;
+      creepers.forEach(c=>scene.remove(c.mesh)); creepers.length=0;
+      notify('🌅 Sunrise — Safe!','#ffff88');
+    }
+  }
+
+  // Clouds
+  clouds.forEach(c=>{ c.position.x+=dt*2; if(c.position.x>WORLD/2) c.position.x=-WORLD/2; });
+
+  // Water bob
+  const wb=Math.sin(now*.0015)*.06;
+  waterMeshes.forEach(w=>w.position.y+=wb*dt);
+
+  // ── Zombie AI (smooth walk) ──
+  for(const z of zombies){
+    const zp=z.mesh.position;
+    z.mesh.lookAt(camera.position.x,zp.y,camera.position.z);
+    const d=new THREE.Vector3().subVectors(camera.position,zp).normalize();
+    zp.addScaledVector(d,z.spd*dt);
+    if(zp.y>1.8) zp.y-=5*dt; else zp.y=1.5;
+    // Smooth arm swing
+    z.walkT=(z.walkT||0)+dt*z.spd*4;
+    const as=Math.sin(z.walkT)*.8;
+    if(z.arms){z.arms[0].rotation.x=-Math.PI/2+as; z.arms[1].rotation.x=-Math.PI/2-as;}
+    if(z.legs){z.legs[0].rotation.x=as*.6; z.legs[1].rotation.x=-as*.6;}
+    // Head bob
+    if(z.mesh.children[1]) z.mesh.children[1].position.y=1.46+Math.sin(z.walkT*2)*.03;
+
+    if(zp.distanceTo(camera.position)<1.2){
+      hp=Math.max(0,hp-.6); updateBars();
+      dmgFlash('rgba(255,0,0,.22)');
+    }
+  }
+
+  // ── Creeper AI ──
+  for(let i=creepers.length-1;i>=0;i--){
+    const cr=creepers[i];
+    if(cr.exploded) continue;
+    const cp=cr.mesh.position;
+    const dist=cp.distanceTo(camera.position);
+    cr.mesh.lookAt(camera.position.x,cp.y,camera.position.z);
+    if(dist<4){ cr.fusing=true; }
+    else if(dist<14){
+      const d2=new THREE.Vector3().subVectors(camera.position,cp).normalize();
+      cp.addScaledVector(d2,cr.spd*dt);
+    }
+    if(cp.y>1.8) cp.y-=5*dt; else cp.y=1.5;
+    if(cr.fusing){
+      cr.fuseT+=dt;
+      cr.mesh.visible=(Math.floor(cr.fuseT*9)%2===0);
+      if(cr.fuseT>1.5){
+        cr.exploded=true; cr.mesh.visible=true;
+        explode(cp.clone()); scene.remove(cr.mesh); creepers.splice(i,1);
+      }
+    }
+  }
+
+  // ── Animal AI ──
+  cows.forEach(a=>tickAnimal(a,dt));
+  pigs.forEach(a=>tickAnimal(a,dt));
+  chickens.forEach(a=>{ tickAnimal(a,dt); a.mesh.position.y+=Math.sin(a.hopT=(a.hopT||0)+dt*4)*.02; });
+  sheeps.forEach(a=>tickAnimal(a,dt));
+
+  // ── Arrows ──
+  for(let i=arrows3D.length-1;i>=0;i--){
+    const ar=arrows3D[i];
+    ar.vel.y-=9.8*dt;
+    ar.mesh.position.addScaledVector(ar.vel,dt);
+    ar.life-=dt;
+    if(ar.life<0){ scene.remove(ar.mesh); arrows3D.splice(i,1); continue; }
+    const allM=[...zombies,...creepers,...cows,...pigs,...chickens,...sheeps];
+    let hit2=false;
+    for(const mob of allM){
+      if(ar.mesh.position.distanceTo(mob.mesh.position)<1.6){
+        hitMob(mob.mesh.children[0]||mob.mesh);
+        scene.remove(ar.mesh); arrows3D.splice(i,1);
+        arrowCount++; document.getElementById('arrow-el').innerText=arrowCount;
+        hit2=true; break;
+      }
+    }
+    if(!hit2&&ar.mesh.position&&ar.life>0){
+      // Orient arrow along velocity
+      const up=new THREE.Vector3(0,1,0);
+      const vel2=ar.vel.clone().normalize();
+      if(vel2.length()>.01&&Math.abs(vel2.dot(up))<.99)
+        ar.mesh.quaternion.setFromUnitVectors(up,vel2);
+    }
+  }
+
+  // ── Particles ──
+  for(let i=particles.length-1;i>=0;i--){
+    const p=particles[i];
+    p.vel.y-=16*dt;
+    p.mesh.position.addScaledVector(p.vel,dt);
+    p.life-=dt;
+    p.mesh.material.opacity=Math.max(0,p.life);
+    if(p.life<0){ scene.remove(p.mesh); particles.splice(i,1); }
+  }
+
+  // ── Drops ──
+  for(let i=drops.length-1;i>=0;i--){
+    const dr=drops[i];
+    dr.mesh.rotation.y+=dt*3.5;
+    dr.mesh.position.y+=Math.sin(now*.004+i)*.005;
+    if(dr.mesh.position.distanceTo(camera.position)<2){
+      invItems[dr.type]=(invItems[dr.type]||0)+1;
+      scene.remove(dr.mesh); drops.splice(i,1);
+      notify('+1 '+dr.type,'#aaffaa');
+    }
+  }
+
+  // ── Coins ──
+  for(let i=coins.length-1;i>=0;i--){
+    coins[i].rotation.y+=dt*3;
+    coins[i].position.y+=Math.sin(now*.003+i)*.003;
+    if(camera.position.distanceTo(coins[i].position)<2){
+      score+=100; gainXP(5);
+      scene.remove(coins[i]); coins.splice(i,1);
+      notify('+100 Points! 💰','#FFD700');
+    }
+  }
+
+  // ── Hunger / Regen ──
+  hunT+=dt;
+  if(hunT>8){ hunT=0; hun=Math.max(0,hun-1); }
+  if(hun<=0){ hp=Math.max(0,hp-.3); }
+  regenT+=dt;
+  if(regenT>5&&hun>50){ regenT=0; hp=Math.min(MAX_HP,hp+1); }
+  updateBars();
+
+  // ── HUD updates ──
+  document.getElementById('pos-el').innerText=
+    `${Math.round(camera.position.x)},${Math.round(camera.position.y)},${Math.round(camera.position.z)}`;
+  document.getElementById('biome-el').innerText=
+    biome(Math.round(camera.position.x),Math.round(camera.position.z)).toUpperCase();
+
+  // Minimap
+  mmT+=dt; if(mmT>0.18){ mmT=0; drawMinimap(); }
+
+  // ── Physics ──
+  if(controls.isLocked&&!panelOpen){
+    vel.x-=vel.x*10*dt;
+    vel.z-=vel.z*10*dt;
+    vel.y-=30*dt;
+
+    const dir=new THREE.Vector3(
+      Number(move.r)-Number(move.l),0,
+      Number(move.f)-Number(move.b)
+    ).normalize();
+    const spd=move.sprint?170:125;
+    vel.x-=dir.x*spd*dt;
+    vel.z-=dir.z*spd*dt;
+
+    controls.moveRight(-vel.x*dt);
+    controls.moveForward(-vel.z*dt);
+
+    // Ladder
+    let onLad=false;
+    for(const l of ladders) if(camera.position.distanceTo(l.position)<1.1){ onLad=true; break; }
+    if(onLad){ vel.y=0; if(move.f) vel.y=6; if(move.b) vel.y=-5; }
+
+    controls.getObject().position.y+=vel.y*dt;
+
+    // Ground check
+    ray.set(camera.position,new THREE.Vector3(0,-1,0));
+    const gh=ray.intersectObjects(collidable);
+    if(gh.length>0&&gh[0].distance<1.68&&!onLad){
+      vel.y=Math.max(0,vel.y);
+      controls.getObject().position.y=gh[0].point.y+1.68;
+      if(gh[0].object.name==='fire'){
+        hp=Math.max(0,hp-.4); dmgFlash('rgba(255,100,0,.3)'); updateBars();
+      }
+    } else if(camera.position.y<2){ vel.y=0; camera.position.y=2; }
+
+    const onGround=gh.length>0&&gh[0].distance<1.68;
+    if(move.jump&&onGround) vel.y=13.5;
+
+    // Camera bob while walking
+    if(onGround&&(move.f||move.b||move.l||move.r)){
+      bobT+=dt*8;
+      camera.position.y+=Math.sin(bobT)*.022;
+    }
+
+    // Bound to world
+    camera.position.x=Math.max(-WORLD/2+1,Math.min(WORLD/2-1,camera.position.x));
+    camera.position.z=Math.max(-WORLD/2+1,Math.min(WORLD/2-1,camera.position.z));
+  }
+
+  renderer.render(scene,camera);
+}
+
+window.addEventListener('resize',()=>{
+  camera.aspect=innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth,innerHeight);
+});
+
+// Init
+updateBars(); updateUI(); updateHotbarLabel();
+notify('🌍 Generating world...','#7fffff');
+animate();
+</script>
+</body>
+</html>
